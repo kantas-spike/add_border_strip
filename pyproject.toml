@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "add-border-strip"
+version = "0.0.1"
+description = ""
+authors = ["kanta <101532773+kantas-spike@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.10"
+fake-bpy-module-latest = "^20231129"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
