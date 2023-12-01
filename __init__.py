@@ -1,3 +1,4 @@
+import typing
 import bpy
 from bpy.types import Context
 
@@ -10,6 +11,16 @@ bl_info = {
     "location": "VSE > Sidebar",
     "category": "Sequencer",
 }
+
+
+class AddBorderMainOperation(bpy.types.Operator):
+    bl_idname = "object.add_border_strip"
+    bl_label = "Add Border Image Strip"
+    bl_description = "枠線画像を生成しイメージストリップとして追加する"
+
+    def execute(self, context: Context):
+        print(f"{self.bl_label}がクリックされました")
+        return {"FINISHED"}
 
 
 class AddBorderPanel(bpy.types.Panel):
@@ -41,6 +52,8 @@ class AddBorderPanel(bpy.types.Panel):
         layout.separator()
         layout.label(text="ボーダーのサイズ(px)")
         layout.prop(props, "border_size", text="")
+        layout.separator()
+        layout.operator(AddBorderMainOperation.bl_idname, text="イメージストリップを追加")
 
 
 class AddBorderProperties(bpy.types.PropertyGroup):
@@ -50,7 +63,7 @@ class AddBorderProperties(bpy.types.PropertyGroup):
     border_size: bpy.props.IntProperty(default=10, min=0, max=100)
 
 
-classList = [AddBorderPanel, AddBorderProperties]
+classList = [AddBorderProperties, AddBorderMainOperation, AddBorderPanel]
 
 
 def setup_props():
