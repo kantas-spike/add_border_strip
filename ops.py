@@ -1,4 +1,5 @@
 import bpy
+import datetime
 from bpy.types import Context, Event
 from . import border_strip_utils
 
@@ -21,12 +22,20 @@ class AddMarkerStripOpertaion(bpy.types.Operator):
             frame_start=cur_frame,
             frame_end=cur_frame + DEFAULT_DURATION,
         )
-        marker_strip.transform.scale_x = 0.5
-        marker_strip.transform.scale_y = 0.5
-        marker_strip.color = (0, 0.5, 0)
-        marker_strip.blend_alpha = 0.3
+
+        props = context.scene.border_props
+        marker_strip.transform.scale_x = props.marker_scale_x
+        marker_strip.transform.scale_y = props.marker_scale_y
+        marker_strip.color = props.marker_color[0:3]
+        marker_strip.blend_alpha = props.marker_color[3]
         marker_strip["generated_by"] = "add_border_strip"
         marker_strip["strip_type"] = "marker"
+        marker_strip[
+            "marker_id"
+        ] = f"{marker_strip.name}_{datetime.datetime.now().timestamp()}"
+        strip = se.active_strip
+        if strip is not None:
+            strip.select = False
         se.active_strip = marker_strip
 
         self.report(type={"INFO"}, message="test")
@@ -48,7 +57,8 @@ class AddBorderMainOperation(bpy.types.Operator):
     def modal(self, context: Context, event: Event):
         if event.type == "TIMER":
             context.window_manager.event_timer_remove(self._timer)
-            ret = self.add_border_strip(context)
+            target_strip = context.scene.sequence_editor.active_strip
+            ret = self.add_border_strip(context, target_strip)
             self._timer = None
             return ret
         else:
@@ -59,14 +69,16 @@ class AddBorderMainOperation(bpy.types.Operator):
             self.report({"WARNING"}, "処理中のためキャンセル")
             return {"CANCELLED"}
         self.report({"INFO"}, "処理中...")
-        self._timer = context.window_manager.event_timer_add(3.0, window=context.window)
+        self._timer = context.window_manager.event_timer_add(1.0, window=context.window)
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
 
-    def add_border_strip(self, context):
-        target_strip = context.scene.sequence_editor.active_strip
+    def add_border_strip(self, context, target_strip):
         if target_strip is None:
             self.report({"WARNING"}, "Active Stripがありません")
+            return {"CANCELLED"}
+        if target_strip.get("strip_type") != "marker":
+            self.report({"WARNING"}, "Markerが選択されていません")
             return {"CANCELLED"}
 
         props = context.scene.border_props
