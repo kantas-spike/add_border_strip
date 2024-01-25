@@ -10,7 +10,7 @@ else:
 import bpy
 
 bl_info = {
-    "name": "add border",
+    "name": "Add Border",
     "description": "VSE内に枠線用のイメージストリップを追加する",
     "author": "kanta",
     "version": (0, 0),
