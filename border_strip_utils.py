@@ -22,7 +22,7 @@ class StripRect:
         scrn_rect = cls.fromScreen()
         trans = strip.transform
         strip_size = []
-        print(strip, f"has elements?: {hasattr(strip, 'elements')}")
+        # print(strip, f"has elements?: {hasattr(strip, 'elements')}")
         if hasattr(strip, "elements"):
             element = strip.elements[0]
             strip_size[:] = [element.orig_width, element.orig_height]
@@ -31,7 +31,7 @@ class StripRect:
                 scrn_rect.width * trans.scale_x,
                 scrn_rect.height * trans.scale_y,
             ]
-        print(f"strip_size: {strip_size}")
+        # print(f"strip_size: {strip_size}")
         strip_w = strip_size[0]
         strip_h = strip_size[1]
         global_origin = [
@@ -77,7 +77,8 @@ def create_border_strip(
 
     if not os.path.exists(abs_image_dir):
         os.makedirs(abs_image_dir)
-    file_name = f"{src_strip.name}_{datetime.datetime.now().timestamp()}.png"
+
+    file_name = f"{src_strip.get('marker_id')}.png"
     output_path = os.path.join(abs_image_dir, file_name)
     # print(output_path)
 
@@ -92,7 +93,7 @@ def create_border_strip(
     rel_image_path = (
         bpy.path.relpath(output_path) if len(bpy.data.filepath) > 0 else output_path
     )
-    print(f"rel_image_path: {rel_image_path}")
+    # print(f"rel_image_path: {rel_image_path}")
     se = bpy.context.scene.sequence_editor
     img_strip = se.sequences.new_image(
         bpy.path.basename(rel_image_path),
@@ -102,7 +103,7 @@ def create_border_strip(
     )
     img_strip.frame_final_end = src_strip.frame_final_end
     img_rect = StripRect.fromEffectSequenceStrip(img_strip)
-    print(src_rect, img_rect)
+    # print(src_rect, img_rect)
     img_strip.transform.offset_x = src_rect.x - img_rect.x - border_size
     img_strip.transform.offset_y = src_rect.y - img_rect.y - border_size
 
@@ -127,37 +128,75 @@ def _draw_rect(output_path, width, height, border_size=5, border_color=[1, 0, 0,
     img.file_format = "PNG"
     img.alpha_mode = "STRAIGHT"
     img.filepath = output_path
-    # 一度保存してからじゃないと
-    # RGBAで保存できないようなので
-    # 一旦保存
-    # たぶん 4.0.2で修正される?
-    # Fix #114963: Image Editor - Fill Tool doesn't work as expected
-    #  · 41e1836dbb - blender - Blender Projects
-    # https://projects.blender.org/blender/blender/commit/41e1836dbbb9113eed74aac2c0102db158c84347
-    # img.save()
 
     default_pixel = [0, 0, 0, 0]
     len_of_pxs = rect_width * rect_height
     # img.pixels = default_pixel * len_of_pxs
     wk_pixels = default_pixel * len_of_pxs
-    _draw_border(wk_pixels, rect_width, rect_height, border_size, border_color)
+    _draw_straight_line(
+        wk_pixels,
+        rect_width,
+        rect_height,
+        (0, 0),
+        (0, rect_height - 1),
+        border_size,
+        border_color,
+    )
+    _draw_straight_line(
+        wk_pixels,
+        rect_width,
+        rect_height,
+        (rect_width - border_size, 0),
+        (rect_width - border_size, rect_height - 1),
+        border_size,
+        border_color,
+    )
+    _draw_straight_line(
+        wk_pixels,
+        rect_width,
+        rect_height,
+        (0, 0),
+        (rect_width - 1, 0),
+        border_size,
+        border_color,
+    )
+    _draw_straight_line(
+        wk_pixels,
+        rect_width,
+        rect_height,
+        (0, rect_height - border_size - 1),
+        (rect_width - 1, rect_height - border_size - 1),
+        border_size,
+        border_color,
+    )
     img.pixels = wk_pixels
     img.save()
     bpy.data.images.remove(img)
 
 
-def _draw_border(pixels, width, height, border_size, border_color):
-    # print(">>>_draw_border")
-    depth = len(border_color)
-    for h in range(height):
-        for w in range(width):
-            if (
-                h < border_size
-                or h >= height - border_size
-                or w < border_size
-                or w >= width - border_size
-            ):
-                start_idx = w * depth + (width * depth * h)
-                end_idx = start_idx + depth
-                # print(f"{pixels[start_idx: end_idx]}, {start_idx}:{end_idx}")
-                pixels[start_idx:end_idx] = border_color
+def _draw_straight_line(pixels, width, height, p1, p2, border_size, border_color):
+    if p1[0] == p2[0]:
+        _draw_vertical_line(pixels, width, height, p1, p2, border_size, border_color)
+    elif p1[1] == p2[1]:
+        _draw_horizontal_line(pixels, width, height, p1, p2, border_size, border_color)
+    else:
+        raise NotImplementedError("直線以外は未実装")
+
+
+def _draw_vertical_line(pixels, width, height, p1, p2, border_size, border_color):
+    color = border_color[:]
+    depth = len(color)
+    dh = p2[1] - p1[1]
+    for hidx in range(dh):
+        start_idx = (p1[0] * depth) + (width * depth * (p1[1] + hidx))
+        end_idx = start_idx + depth * border_size
+        pixels[start_idx:end_idx] = color * border_size
+
+
+def _draw_horizontal_line(pixels, width, height, p1, p2, border_size, border_color):
+    color = border_color[:]
+    depth = len(color)
+    for bsidx in range(border_size):
+        start_idx = (p1[0] * depth) + (width * depth * (p1[1] + bsidx))
+        end_idx = start_idx + depth * (p2[0] - p1[0] + 1)
+        pixels[start_idx:end_idx] = color * (p2[0] - p1[0] + 1)
