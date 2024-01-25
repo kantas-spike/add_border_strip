@@ -22,13 +22,14 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         props = context.scene.border_props
         se = bpy.context.scene.sequence_editor
         cur_frame = bpy.context.scene.frame_current
-        placeholder_strip: bpy.types.ColorSequence = se.sequences.new_effect(
-            name=f"placeholder_{datetime.datetime.now().timestamp()}",
+        bpy.ops.sequencer.effect_strip_add(
             type="COLOR",
-            channel=props.placeholder_channel,
             frame_start=cur_frame,
             frame_end=cur_frame + props.placeholder_duration,
+            channel=props.placeholder_channel,
         )
+        placeholder_strip = se.active_strip
+        placeholder_strip.name = f"placeholder_{datetime.datetime.now().timestamp()}"
         placeholder_strip.transform.origin[0] = 0
         placeholder_strip.transform.origin[1] = 1.0
         placeholder_strip.transform.scale_x = props.placeholder_scale_x
@@ -46,10 +47,6 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         placeholder_strip[CUSTOM_KEY_GENERATER] = ADDON_NAME
         placeholder_strip[CUSTOM_KEY_STRIP_TYPE] = STRIP_TYPE_PLACEHOLDER
         placeholder_strip[CUSTOM_KEY_PLACEHOLDER_ID] = placeholder_strip.name
-        strip = se.active_strip
-        if strip is not None:
-            strip.select = False
-        se.active_strip = placeholder_strip
 
         self.report(type={"INFO"}, message="test")
         return {"FINISHED"}
