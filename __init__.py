@@ -108,7 +108,7 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         layout.separator()
         row = layout.row(align=True)
         row.operator(
-            ops.AddBorderMainOperation.bl_idname,
+            ops.AddBorderReplaceCurrentPlaceholderOperation.bl_idname,
             text="Replace Placehlder to Border Image",
         )
         strip = context.scene.sequence_editor.active_strip

@@ -40,10 +40,10 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class AddBorderMainOperation(bpy.types.Operator):
-    bl_idname = "add_border_strip.add_border"
-    bl_label = "Add Border Image Strip"
-    bl_description = "枠線画像を生成しイメージストリップとして追加する"
+class AddBorderReplaceCurrentPlaceholderOperation(bpy.types.Operator):
+    bl_idname = "add_border_strip.replace_current_placeholder"
+    bl_label = "Rplace Current Placeholder to Border Image"
+    bl_description = "現在選択しているプレイスホルダーを枠線画像に置換する"
     bl_options = {"REGISTER", "UNDO"}
 
     _timer = None
@@ -106,6 +106,6 @@ class AddBorderMainOperation(bpy.types.Operator):
 
 
 class_list = [
-    AddBorderMainOperation,
+    AddBorderReplaceCurrentPlaceholderOperation,
     AddPlaceholderStripOpertaion,
 ]
