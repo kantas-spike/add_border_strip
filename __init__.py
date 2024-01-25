@@ -45,7 +45,7 @@ class AddBorderOutputPanel(AddBorderBase, bpy.types.Panel):
         props = context.scene.border_props
 
         layout = self.layout
-        layout.label(text="画像出力先ディレクトリ")
+        layout.label(text="Border Image Directory")
         layout.prop(props, "image_dir", text="")
 
 
@@ -58,9 +58,10 @@ class AddBorderPlaceholderPanel(AddBorderBase, bpy.types.Panel):
 
 
 class AddBorderPlaceholderSettingsPanel(AddBorderBase, bpy.types.Panel):
-    bl_label = "Placeholder設定"
+    bl_label = "Settings"
     bl_idname = "ADDBORDER_PT_PlaceholderSettingsPanel"
     bl_parent_id = "ADDBORDER_PT_PlaceholderPanel"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         props = context.scene.border_props
@@ -87,7 +88,8 @@ class AddBorderPlaceholderButtonsPanel(AddBorderBase, bpy.types.Panel):
         pass
         layout = self.layout
         layout.operator(
-            ops.AddPlaceholderStripOpertaion.bl_idname, text="位置決め用Stripを挿入"
+            ops.AddPlaceholderStripOpertaion.bl_idname,
+            text="Add Strip for Placeholder",
         )
 
 
@@ -101,11 +103,14 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         layout = self.layout
         layout_props(layout, props, "border_color", "Color")
         layout.separator()
-        layout_props(layout, props, "border_size", "サイズ(px)")
+        layout_props(layout, props, "border_size", "Size(px)")
 
         layout.separator()
         row = layout.row(align=True)
-        row.operator(ops.AddBorderMainOperation.bl_idname, text="ボーダーストリップを追加")
+        row.operator(
+            ops.AddBorderMainOperation.bl_idname,
+            text="Replace Placehlder to Border Image",
+        )
         strip = context.scene.sequence_editor.active_strip
         if (
             strip is not None
