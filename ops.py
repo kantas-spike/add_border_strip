@@ -29,9 +29,11 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
             frame_start=cur_frame,
             frame_end=cur_frame + props.placeholder_duration,
         )
-
+        placeholder_strip.transform.origin[0] = 0
+        placeholder_strip.transform.origin[1] = 1.0
         placeholder_strip.transform.scale_x = props.placeholder_scale_x
         placeholder_strip.transform.scale_y = props.placeholder_scale_y
+
         placeholder_strip.color = props.placeholder_color[0:3]
         placeholder_strip.blend_alpha = props.placeholder_color[3]
         placeholder_strip[CUSTOM_KEY_GENERATER] = ADDON_NAME
