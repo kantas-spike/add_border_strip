@@ -4,6 +4,14 @@ from bpy.types import Context, Event
 from . import border_strip_utils
 
 
+CUSTOM_KEY_GENERATER = "generated_by"
+CUSTOM_KEY_STRIP_TYPE = "strip_type"
+CUSTOM_KEY_PLACEHOLDER_ID = "placeholder_id"
+ADDON_NAME = "add_border_strip"
+STRIP_TYPE_PLACEHOLDER = "placeholder"
+STRIP_TYPE_BORDER = "border"
+
+
 class AddPlaceholderStripOpertaion(bpy.types.Operator):
     bl_idname = "add_border_strip.add_placeholder_strip"
     bl_label = "Add Placeholder Strip"
@@ -15,7 +23,7 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         se = bpy.context.scene.sequence_editor
         cur_frame = bpy.context.scene.frame_current
         placeholder_strip: bpy.types.ColorSequence = se.sequences.new_effect(
-            name="placeholder",
+            name=f"placeholder_{datetime.datetime.now().timestamp()}",
             type="COLOR",
             channel=props.placeholder_channel,
             frame_start=cur_frame,
@@ -26,11 +34,9 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         placeholder_strip.transform.scale_y = props.placeholder_scale_y
         placeholder_strip.color = props.placeholder_color[0:3]
         placeholder_strip.blend_alpha = props.placeholder_color[3]
-        placeholder_strip["generated_by"] = "add_border_strip"
-        placeholder_strip["strip_type"] = "placeholder"
-        placeholder_strip[
-            "placeholder_id"
-        ] = f"{placeholder_strip.name}_{datetime.datetime.now().timestamp()}"
+        placeholder_strip[CUSTOM_KEY_GENERATER] = ADDON_NAME
+        placeholder_strip[CUSTOM_KEY_STRIP_TYPE] = STRIP_TYPE_PLACEHOLDER
+        placeholder_strip[CUSTOM_KEY_PLACEHOLDER_ID] = placeholder_strip.name
         strip = se.active_strip
         if strip is not None:
             strip.select = False
@@ -56,7 +62,7 @@ class AddBorderReplaceCurrentPlaceholderOperation(bpy.types.Operator):
         if event.type == "TIMER":
             context.window_manager.event_timer_remove(self._timer)
             target_strip = context.scene.sequence_editor.active_strip
-            ret = self.add_border_strip(context, target_strip)
+            ret = add_border_strip(self, context, target_strip)
             self._timer = None
             return ret
         else:
@@ -71,41 +77,99 @@ class AddBorderReplaceCurrentPlaceholderOperation(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
 
-    def add_border_strip(self, context, target_strip):
-        if target_strip is None:
-            self.report({"WARNING"}, "Active Stripがありません")
-            return {"CANCELLED"}
-        if target_strip.get("strip_type") != "placeholder":
-            self.report({"WARNING"}, "Placeholderが選択されていません")
-            return {"CANCELLED"}
 
-        props = context.scene.border_props
-        abs_image_dir = border_strip_utils.normalize_image_dir(props.image_dir)
-        # print(f"abs_image_dir: {abs_image_dir}")
-        if abs_image_dir is None:
-            self.report(
-                type={"WARNING"},
-                message="画像出力先ディレクトリに相対パスが指定されました。.blendファイルを保存してから実行してください",
-            )
-            return {"CANCELLED"}
-        # オペレーターのプロパティーで、imageストリップのdurationを調整可能に
-        img_strip = border_strip_utils.create_border_strip(
-            target_strip,
-            abs_image_dir,
-            props.border_size,
-            props.border_color,
+def add_border_strip(op, context, target_strip):
+    if target_strip is None:
+        op.report({"WARNING"}, "置換対象のStripがありません")
+        return {"CANCELLED"}
+    if not is_placeholder(target_strip):
+        op.report({"WARNING"}, "Placeholderが選択されていません")
+        return {"CANCELLED"}
+    props = context.scene.border_props
+    abs_image_dir = border_strip_utils.normalize_image_dir(props.image_dir)
+    # print(f"abs_image_dir: {abs_image_dir}")
+    if abs_image_dir is None:
+        op.report(
+            type={"WARNING"},
+            message="画像出力先ディレクトリに相対パスが指定されました。.blendファイルを保存してから実行してください",
         )
-        org_channel = target_strip.channel
-        se = bpy.context.scene.sequence_editor
-        se.sequences.remove(target_strip)
-        img_strip.channel = org_channel
-        se.active_strip = img_strip
+        return {"CANCELLED"}
+    # オペレーターのプロパティーで、imageストリップのdurationを調整可能に
+    img_strip = border_strip_utils.create_border_strip(
+        target_strip,
+        abs_image_dir,
+        props.border_size,
+        props.border_color,
+    )
+    img_strip[CUSTOM_KEY_GENERATER] = ADDON_NAME
+    img_strip[CUSTOM_KEY_STRIP_TYPE] = STRIP_TYPE_BORDER
+    ph_id = target_strip.get(CUSTOM_KEY_PLACEHOLDER_ID)
+    org_channel = target_strip.channel
+    se = bpy.context.scene.sequence_editor
+    se.sequences.remove(target_strip)
+    img_strip.channel = org_channel
+    se.active_strip = img_strip
 
-        self.report({"INFO"}, "処理が完了しました。")
-        return {"FINISHED"}
+    op.report({"INFO"}, f"Placeholder({ph_id})を置換しました。")
+    return {"FINISHED"}
+
+
+def get_all_placeholder_strips():
+    se = bpy.context.scene.sequence_editor
+    targets = []
+    for strip in se.sequences:
+        if is_placeholder(strip):
+            targets.append(strip)
+    return targets
+
+
+def is_placeholder(strip):
+    if (
+        strip.get(CUSTOM_KEY_GENERATER) == ADDON_NAME
+        and strip.get(CUSTOM_KEY_STRIP_TYPE) == STRIP_TYPE_PLACEHOLDER
+    ):
+        return True
+    return False
+
+
+class AddBorderReplaceAllPlaceholdersOperation(bpy.types.Operator):
+    bl_idname = "add_border_strip.replace_all_placeholders"
+    bl_label = "Rplace All Placeholders to Border Images"
+    bl_description = "統べてのプレイスホルダーを枠線画像に置換する"
+    bl_options = {"REGISTER", "UNDO"}
+
+    _timer = None
+
+    @classmethod
+    def poll(cls, context):
+        return context.space_data.view_type == "SEQUENCER"
+
+    def modal(self, context: Context, event: Event):
+        if event.type == "TIMER":
+            context.window_manager.event_timer_remove(self._timer)
+            target_list = get_all_placeholder_strips()
+            if len(target_list) == 0:
+                self.report({"WARNING"}, "処理対象のPlaceholderがありません")
+                return {"CANCELLED"}
+            for target_strip in target_list:
+                add_border_strip(self, context, target_strip)
+            self._timer = None
+            return {"FINISHED"}
+        else:
+            return {"RUNNING_MODAL"}
+
+    def invoke(self, context: Context, event: Event):
+        if self._timer:
+            self.report({"WARNING"}, "処理中のためキャンセル")
+            return {"CANCELLED"}
+        self.report({"INFO"}, "処理中...")
+        self._timer = context.window_manager.event_timer_add(1.0, window=context.window)
+        context.window_manager.modal_handler_add(self)
+        return {"RUNNING_MODAL"}
 
 
 class_list = [
-    AddBorderReplaceCurrentPlaceholderOperation,
     AddPlaceholderStripOpertaion,
+    AddBorderReplaceCurrentPlaceholderOperation,
+    AddBorderReplaceAllPlaceholdersOperation,
 ]

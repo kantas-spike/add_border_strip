@@ -112,14 +112,16 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
             text="Replace Placehlder to Border Image",
         )
         strip = context.scene.sequence_editor.active_strip
-        if (
-            strip is not None
-            and strip.get("generated_by") == "add_border_strip"
-            and strip.get("strip_type") == "placeholder"
-        ):
+        if strip is not None and ops.is_placeholder(strip):
             row.enabled = True
         else:
             row.enabled = False
+
+        row = layout.row(align=True)
+        row.operator(
+            ops.AddBorderReplaceAllPlaceholdersOperation.bl_idname,
+            text="Replace All Placehlder to Border Image",
+        )
 
 
 class AddBorderProperties(bpy.types.PropertyGroup):
