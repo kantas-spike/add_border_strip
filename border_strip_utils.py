@@ -78,7 +78,7 @@ def create_border_strip(
     if not os.path.exists(abs_image_dir):
         os.makedirs(abs_image_dir)
 
-    file_name = f"{src_strip.get('marker_id')}.png"
+    file_name = f"{src_strip.get('placeholder_id')}.png"
     output_path = os.path.join(abs_image_dir, file_name)
     # print(output_path)
 

@@ -4,9 +4,9 @@ from bpy.types import Context, Event
 from . import border_strip_utils
 
 
-class AddMarkerStripOpertaion(bpy.types.Operator):
-    bl_idname = "add_border_strip.add_marker_strip"
-    bl_label = "Add Marker Strip"
+class AddPlaceholderStripOpertaion(bpy.types.Operator):
+    bl_idname = "add_border_strip.add_placeholder_strip"
+    bl_label = "Add Placeholder Strip"
     bl_description = "枠線画像を挿入するための位置決め用のストリップを追加する"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -14,27 +14,27 @@ class AddMarkerStripOpertaion(bpy.types.Operator):
         props = context.scene.border_props
         se = bpy.context.scene.sequence_editor
         cur_frame = bpy.context.scene.frame_current
-        marker_strip: bpy.types.ColorSequence = se.sequences.new_effect(
-            name="marker",
+        placeholder_strip: bpy.types.ColorSequence = se.sequences.new_effect(
+            name="placeholder",
             type="COLOR",
-            channel=props.marker_channel,
+            channel=props.placeholder_channel,
             frame_start=cur_frame,
-            frame_end=cur_frame + props.marker_duration,
+            frame_end=cur_frame + props.placeholder_duration,
         )
 
-        marker_strip.transform.scale_x = props.marker_scale_x
-        marker_strip.transform.scale_y = props.marker_scale_y
-        marker_strip.color = props.marker_color[0:3]
-        marker_strip.blend_alpha = props.marker_color[3]
-        marker_strip["generated_by"] = "add_border_strip"
-        marker_strip["strip_type"] = "marker"
-        marker_strip[
-            "marker_id"
-        ] = f"{marker_strip.name}_{datetime.datetime.now().timestamp()}"
+        placeholder_strip.transform.scale_x = props.placeholder_scale_x
+        placeholder_strip.transform.scale_y = props.placeholder_scale_y
+        placeholder_strip.color = props.placeholder_color[0:3]
+        placeholder_strip.blend_alpha = props.placeholder_color[3]
+        placeholder_strip["generated_by"] = "add_border_strip"
+        placeholder_strip["strip_type"] = "placeholder"
+        placeholder_strip[
+            "placeholder_id"
+        ] = f"{placeholder_strip.name}_{datetime.datetime.now().timestamp()}"
         strip = se.active_strip
         if strip is not None:
             strip.select = False
-        se.active_strip = marker_strip
+        se.active_strip = placeholder_strip
 
         self.report(type={"INFO"}, message="test")
         return {"FINISHED"}
@@ -75,8 +75,8 @@ class AddBorderMainOperation(bpy.types.Operator):
         if target_strip is None:
             self.report({"WARNING"}, "Active Stripがありません")
             return {"CANCELLED"}
-        if target_strip.get("strip_type") != "marker":
-            self.report({"WARNING"}, "Markerが選択されていません")
+        if target_strip.get("strip_type") != "placeholder":
+            self.report({"WARNING"}, "Placeholderが選択されていません")
             return {"CANCELLED"}
 
         props = context.scene.border_props
@@ -107,5 +107,5 @@ class AddBorderMainOperation(bpy.types.Operator):
 
 class_list = [
     AddBorderMainOperation,
-    AddMarkerStripOpertaion,
+    AddPlaceholderStripOpertaion,
 ]

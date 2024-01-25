@@ -49,44 +49,46 @@ class AddBorderOutputPanel(AddBorderBase, bpy.types.Panel):
         layout.prop(props, "image_dir", text="")
 
 
-class AddBorderMarkerPanel(AddBorderBase, bpy.types.Panel):
-    bl_label = "Marker"
-    bl_idname = "ADDBORDER_PT_MarkerPanel"
+class AddBorderPlaceholderPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Placeholder"
+    bl_idname = "ADDBORDER_PT_PlaceholderPanel"
 
     def draw(self, context):
         pass
 
 
-class AddBorderMarkerSettingsPanel(AddBorderBase, bpy.types.Panel):
-    bl_label = "Marker設定"
-    bl_idname = "ADDBORDER_PT_MarkerSettingsPanel"
-    bl_parent_id = "ADDBORDER_PT_MarkerPanel"
+class AddBorderPlaceholderSettingsPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Placeholder設定"
+    bl_idname = "ADDBORDER_PT_PlaceholderSettingsPanel"
+    bl_parent_id = "ADDBORDER_PT_PlaceholderPanel"
 
     def draw(self, context):
         props = context.scene.border_props
 
         layout = self.layout
         layout.label(text="Color & Size")
-        layout_props(layout, props, "marker_color", "Color")
+        layout_props(layout, props, "placeholder_color", "Color")
         layout.separator()
-        layout_props(layout, props, "marker_scale_x", "Scale X")
-        layout_props(layout, props, "marker_scale_y", "Scale Y")
+        layout_props(layout, props, "placeholder_scale_x", "Scale X")
+        layout_props(layout, props, "placeholder_scale_y", "Scale Y")
         layout.separator()
         layout.label(text="Strip")
-        layout_props(layout, props, "marker_duration", "Duration")
-        layout_props(layout, props, "marker_channel", "Channel")
+        layout_props(layout, props, "placeholder_duration", "Duration")
+        layout_props(layout, props, "placeholder_channel", "Channel")
 
 
-class AddBorderMarkerButtonsPanel(AddBorderBase, bpy.types.Panel):
-    bl_label = "Marker"
-    bl_idname = "ADDBORDER_PT_MarkerButtonsPanel"
+class AddBorderPlaceholderButtonsPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Placeholder"
+    bl_idname = "ADDBORDER_PT_PlaceholderButtonsPanel"
     bl_options = {"HIDE_HEADER"}
-    bl_parent_id = "ADDBORDER_PT_MarkerPanel"
+    bl_parent_id = "ADDBORDER_PT_PlaceholderPanel"
 
     def draw(self, context):
         pass
         layout = self.layout
-        layout.operator(ops.AddMarkerStripOpertaion.bl_idname, text="位置決め用Stripを挿入")
+        layout.operator(
+            ops.AddPlaceholderStripOpertaion.bl_idname, text="位置決め用Stripを挿入"
+        )
 
 
 class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
@@ -108,7 +110,7 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         if (
             strip is not None
             and strip.get("generated_by") == "add_border_strip"
-            and strip.get("strip_type") == "marker"
+            and strip.get("strip_type") == "placeholder"
         ):
             row.enabled = True
         else:
@@ -121,19 +123,19 @@ class AddBorderProperties(bpy.types.PropertyGroup):
         subtype="COLOR_GAMMA", min=0, max=1.0, size=4, default=(1.0, 0, 0, 1)
     )
     border_size: bpy.props.IntProperty(default=10, min=0, max=100)
-    marker_color: bpy.props.FloatVectorProperty(
+    placeholder_color: bpy.props.FloatVectorProperty(
         subtype="COLOR_GAMMA", min=0, max=1.0, size=4, default=(0.0, 0.5, 0.1, 0.3)
     )
-    marker_scale_x: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
-    marker_scale_y: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
-    marker_duration: bpy.props.IntProperty(min=0, default=60)
-    marker_channel: bpy.props.IntProperty(min=1, default=2)
+    placeholder_scale_x: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
+    placeholder_scale_y: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
+    placeholder_duration: bpy.props.IntProperty(min=0, default=60)
+    placeholder_channel: bpy.props.IntProperty(min=1, default=2)
 
 
 classList = ops.class_list + [
-    AddBorderMarkerPanel,
-    AddBorderMarkerSettingsPanel,
-    AddBorderMarkerButtonsPanel,
+    AddBorderPlaceholderPanel,
+    AddBorderPlaceholderSettingsPanel,
+    AddBorderPlaceholderButtonsPanel,
     AddBorderOutputPanel,
     AddBorderBorderPanel,
     AddBorderProperties,
