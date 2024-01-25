@@ -66,10 +66,15 @@ class AddBorderMarkerSettingsPanel(AddBorderBase, bpy.types.Panel):
         props = context.scene.border_props
 
         layout = self.layout
+        layout.label(text="Color & Size")
         layout_props(layout, props, "marker_color", "Color")
         layout.separator()
         layout_props(layout, props, "marker_scale_x", "Scale X")
         layout_props(layout, props, "marker_scale_y", "Scale Y")
+        layout.separator()
+        layout.label(text="Strip")
+        layout_props(layout, props, "marker_duration", "Duration")
+        layout_props(layout, props, "marker_channel", "Channel")
 
 
 class AddBorderMarkerButtonsPanel(AddBorderBase, bpy.types.Panel):
@@ -121,6 +126,8 @@ class AddBorderProperties(bpy.types.PropertyGroup):
     )
     marker_scale_x: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
     marker_scale_y: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
+    marker_duration: bpy.props.IntProperty(min=0, default=60)
+    marker_channel: bpy.props.IntProperty(min=1, default=2)
 
 
 classList = ops.class_list + [

@@ -3,8 +3,6 @@ import datetime
 from bpy.types import Context, Event
 from . import border_strip_utils
 
-DEFAULT_DURATION = 60
-
 
 class AddMarkerStripOpertaion(bpy.types.Operator):
     bl_idname = "add_border_strip.add_marker_strip"
@@ -13,17 +11,17 @@ class AddMarkerStripOpertaion(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
+        props = context.scene.border_props
         se = bpy.context.scene.sequence_editor
         cur_frame = bpy.context.scene.frame_current
         marker_strip: bpy.types.ColorSequence = se.sequences.new_effect(
             name="marker",
             type="COLOR",
-            channel=2,
+            channel=props.marker_channel,
             frame_start=cur_frame,
-            frame_end=cur_frame + DEFAULT_DURATION,
+            frame_end=cur_frame + props.marker_duration,
         )
 
-        props = context.scene.border_props
         marker_strip.transform.scale_x = props.marker_scale_x
         marker_strip.transform.scale_y = props.marker_scale_y
         marker_strip.color = props.marker_color[0:3]
