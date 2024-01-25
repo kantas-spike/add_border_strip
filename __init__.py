@@ -2,8 +2,10 @@ if "bpy" in locals():
     import imp
 
     imp.reload(ops)
+    imp.reload(border_strip_utils)
 else:
     from . import ops
+    from . import border_strip_utils
 
 import bpy
 
@@ -16,6 +18,13 @@ bl_info = {
     "location": "VSE > Sidebar",
     "category": "Sequencer",
 }
+
+
+def layout_props(layout: bpy.types.UILayout, prop_obj, prop_name, label, factor=0.3):
+    sep = layout.split(factor=factor)
+    sep.alignment = "RIGHT"
+    sep.label(text=label)
+    sep.prop(prop_obj, property=prop_name, text="")
 
 
 class AddBorderBase:
@@ -45,6 +54,32 @@ class AddBorderMarkerPanel(AddBorderBase, bpy.types.Panel):
     bl_idname = "ADDBORDER_PT_MarkerPanel"
 
     def draw(self, context):
+        pass
+
+
+class AddBorderMarkerSettingsPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Marker設定"
+    bl_idname = "ADDBORDER_PT_MarkerSettingsPanel"
+    bl_parent_id = "ADDBORDER_PT_MarkerPanel"
+
+    def draw(self, context):
+        props = context.scene.border_props
+
+        layout = self.layout
+        layout_props(layout, props, "marker_color", "Color")
+        layout.separator()
+        layout_props(layout, props, "marker_scale_x", "Scale X")
+        layout_props(layout, props, "marker_scale_y", "Scale Y")
+
+
+class AddBorderMarkerButtonsPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Marker"
+    bl_idname = "ADDBORDER_PT_MarkerButtonsPanel"
+    bl_options = {"HIDE_HEADER"}
+    bl_parent_id = "ADDBORDER_PT_MarkerPanel"
+
+    def draw(self, context):
+        pass
         layout = self.layout
         layout.operator(ops.AddMarkerStripOpertaion.bl_idname, text="位置決め用Stripを挿入")
 
@@ -57,15 +92,13 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         props = context.scene.border_props
 
         layout = self.layout
-        layout.label(text="ボーダー色")
-        layout.prop(props, "border_color", text="")
+        layout_props(layout, props, "border_color", "Color")
         layout.separator()
-        layout.label(text="ボーダーのサイズ(px)")
-        layout.prop(props, "border_size", text="")
+        layout_props(layout, props, "border_size", "サイズ(px)")
+
         layout.separator()
         row = layout.row(align=True)
-        label = "ボーダーストリップを追加"
-        row.operator(ops.AddBorderMainOperation.bl_idname, text=label)
+        row.operator(ops.AddBorderMainOperation.bl_idname, text="ボーダーストリップを追加")
         strip = context.scene.sequence_editor.active_strip
         if (
             strip is not None
@@ -83,11 +116,18 @@ class AddBorderProperties(bpy.types.PropertyGroup):
         subtype="COLOR_GAMMA", min=0, max=1.0, size=4, default=(1.0, 0, 0, 1)
     )
     border_size: bpy.props.IntProperty(default=10, min=0, max=100)
+    marker_color: bpy.props.FloatVectorProperty(
+        subtype="COLOR_GAMMA", min=0, max=1.0, size=4, default=(0.0, 0.5, 0.1, 0.3)
+    )
+    marker_scale_x: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
+    marker_scale_y: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
 
 
 classList = ops.class_list + [
-    AddBorderOutputPanel,
     AddBorderMarkerPanel,
+    AddBorderMarkerSettingsPanel,
+    AddBorderMarkerButtonsPanel,
+    AddBorderOutputPanel,
     AddBorderBorderPanel,
     AddBorderProperties,
 ]
