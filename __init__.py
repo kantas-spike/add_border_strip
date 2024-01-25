@@ -89,7 +89,7 @@ class AddBorderPlaceholderButtonsPanel(AddBorderBase, bpy.types.Panel):
         layout = self.layout
         layout.operator(
             ops.AddPlaceholderStripOpertaion.bl_idname,
-            text="Add Strip for Placeholder",
+            text="Add Placeholder",
         )
 
 
@@ -109,7 +109,7 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         row = layout.row(align=True)
         row.operator(
             ops.AddBorderReplaceCurrentPlaceholderOperation.bl_idname,
-            text="Replace Placehlder to Border Image",
+            text="Placehlder → Border",
         )
         strip = context.scene.sequence_editor.active_strip
         if strip is not None and ops.is_placeholder(strip):
@@ -120,7 +120,7 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         row = layout.row(align=True)
         row.operator(
             ops.AddBorderReplaceAllPlaceholdersOperation.bl_idname,
-            text="Replace All Placehlder to Border Image",
+            text="All Placehlders → Borders",
         )
 
 
@@ -135,6 +135,7 @@ class AddBorderProperties(bpy.types.PropertyGroup):
     )
     placeholder_scale_x: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
     placeholder_scale_y: bpy.props.FloatProperty(min=0, max=1.0, default=0.5)
+
     placeholder_duration: bpy.props.IntProperty(min=0, default=60)
     placeholder_channel: bpy.props.IntProperty(min=1, default=2)
 
