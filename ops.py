@@ -33,6 +33,13 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         placeholder_strip.transform.origin[1] = 1.0
         placeholder_strip.transform.scale_x = props.placeholder_scale_x
         placeholder_strip.transform.scale_y = props.placeholder_scale_y
+        screen = border_strip_utils.StripRect.fromScreen()
+        placeholder_strip.transform.offset_x = (
+            (1.0 - props.placeholder_scale_x) * screen.width / 2
+        )
+        placeholder_strip.transform.offset_y = (
+            (props.placeholder_scale_y - 1.0) * screen.height / 2
+        )
 
         placeholder_strip.color = props.placeholder_color[0:3]
         placeholder_strip.blend_alpha = props.placeholder_color[3]
