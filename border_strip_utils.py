@@ -106,7 +106,7 @@ def create_border_strip(
     # print(src_rect, img_rect)
     img_strip.transform.offset_x = src_rect.x - img_rect.x - border_size
     img_strip.transform.offset_y = src_rect.y - img_rect.y - border_size
-
+    img_strip.color_tag = "COLOR_01"
     return img_strip
 
 
