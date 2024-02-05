@@ -22,6 +22,7 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         props = context.scene.border_props
         se = bpy.context.scene.sequence_editor
         cur_frame = bpy.context.scene.frame_current
+        bpy.ops.sequencer.select_all(action="DESELECT")
         bpy.ops.sequencer.effect_strip_add(
             type="COLOR",
             frame_start=cur_frame,
@@ -68,6 +69,7 @@ class AddBorderReplaceCurrentPlaceholderOperation(bpy.types.Operator):
         if event.type == "TIMER":
             context.window_manager.event_timer_remove(self._timer)
             target_strip = context.scene.sequence_editor.active_strip
+            bpy.ops.sequencer.select_all(action="DESELECT")
             ret = add_border_strip(self, context, target_strip)
             self._timer = None
             return ret
@@ -157,6 +159,7 @@ class AddBorderReplaceAllPlaceholdersOperation(bpy.types.Operator):
             if len(target_list) == 0:
                 self.report({"WARNING"}, "処理対象のPlaceholderがありません")
                 return {"CANCELLED"}
+            bpy.ops.sequencer.select_all(action="DESELECT")
             for target_strip in target_list:
                 add_border_strip(self, context, target_strip)
             self._timer = None
