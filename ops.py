@@ -12,6 +12,19 @@ STRIP_TYPE_PLACEHOLDER = "placeholder"
 STRIP_TYPE_BORDER = "border"
 
 
+def get_current_meta_strip(context):
+    meta_stack = context.scene.sequence_editor.meta_stack
+    if meta_stack:
+        return meta_stack[-1]
+    return None
+
+
+def adjust_meta_duration(context, added_strip):
+    meta_stack = context.scene.sequence_editor.meta_stack
+    if meta_stack and meta_stack[-1].frame_final_end < added_strip.frame_final_end:
+        meta_stack[-1].frame_final_end = added_strip.frame_final_end
+
+
 class AddPlaceholderStripOpertaion(bpy.types.Operator):
     bl_idname = "add_border_strip.add_placeholder_strip"
     bl_label = "Add Placeholder Strip"
@@ -20,17 +33,17 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
 
     def execute(self, context):
         props = context.scene.border_props
-        se = bpy.context.scene.sequence_editor
         cur_frame = bpy.context.scene.frame_current
         bpy.ops.sequencer.select_all(action="DESELECT")
-        bpy.ops.sequencer.effect_strip_add(
+
+        seqs = context.scene.sequence_editor.sequences
+
+        placeholder_strip = seqs.new_effect(
+            name=f"placeholder_{datetime.datetime.now().timestamp()}",
             type="COLOR",
             frame_start=cur_frame,
             frame_end=cur_frame + props.placeholder_duration,
-            channel=props.placeholder_channel,
-        )
-        placeholder_strip = se.active_strip
-        placeholder_strip.name = f"placeholder_{datetime.datetime.now().timestamp()}"
+            channel=props.placeholder_channel)
         placeholder_strip.transform.origin[0] = 0
         placeholder_strip.transform.origin[1] = 1.0
         placeholder_strip.transform.scale_x = props.placeholder_scale_x
@@ -48,6 +61,13 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         placeholder_strip[CUSTOM_KEY_GENERATER] = ADDON_NAME
         placeholder_strip[CUSTOM_KEY_STRIP_TYPE] = STRIP_TYPE_PLACEHOLDER
         placeholder_strip[CUSTOM_KEY_PLACEHOLDER_ID] = placeholder_strip.name
+
+        current_meta = get_current_meta_strip(context)
+        if current_meta:
+            placeholder_strip.move_to_meta(current_meta)
+            adjust_meta_duration(context, placeholder_strip)
+
+        context.scene.sequence_editor.active_strip = placeholder_strip
 
         self.report(type={"INFO"}, message="test")
         return {"FINISHED"}
@@ -113,19 +133,29 @@ def add_border_strip(op, context, target_strip):
     img_strip[CUSTOM_KEY_STRIP_TYPE] = STRIP_TYPE_BORDER
     ph_id = target_strip.get(CUSTOM_KEY_PLACEHOLDER_ID)
     org_channel = target_strip.channel
-    se = bpy.context.scene.sequence_editor
-    se.sequences.remove(target_strip)
+
+    current_meta = get_current_meta_strip(context)
+    if current_meta:
+        img_strip.move_to_meta(current_meta)
+        current_meta.sequences.remove(target_strip)
+    else:
+        bpy.context.scene.sequence_editor.sequences.remove(target_strip)
+
     img_strip.channel = org_channel
-    se.active_strip = img_strip
+    bpy.context.scene.sequence_editor.active_strip = img_strip
 
     op.report({"INFO"}, f"Placeholder({ph_id})を置換しました。")
     return {"FINISHED"}
 
 
-def get_all_placeholder_strips():
-    se = bpy.context.scene.sequence_editor
+def get_all_placeholder_strips(context: Context):
+    seqs = context.scene.sequence_editor.sequences
+    current_meta = get_current_meta_strip(context)
+    if current_meta:
+        seqs = current_meta.sequences
+
     targets = []
-    for strip in se.sequences:
+    for strip in seqs:
         if is_placeholder(strip):
             targets.append(strip)
     return targets
@@ -155,7 +185,7 @@ class AddBorderReplaceAllPlaceholdersOperation(bpy.types.Operator):
     def modal(self, context: Context, event: Event):
         if event.type == "TIMER":
             context.window_manager.event_timer_remove(self._timer)
-            target_list = get_all_placeholder_strips()
+            target_list = get_all_placeholder_strips(context)
             if len(target_list) == 0:
                 self.report({"WARNING"}, "処理対象のPlaceholderがありません")
                 return {"CANCELLED"}
