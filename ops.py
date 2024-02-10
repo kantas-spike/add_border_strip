@@ -66,6 +66,7 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         if current_meta:
             placeholder_strip.move_to_meta(current_meta)
             adjust_meta_duration(context, placeholder_strip)
+            context.scene.sequence_editor.display_stack(current_meta)
 
         context.scene.sequence_editor.active_strip = placeholder_strip
 
