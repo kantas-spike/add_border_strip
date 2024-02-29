@@ -2,6 +2,11 @@ import bpy
 import datetime
 import secrets
 import os
+import gpu
+import numpy as np
+
+from mathutils import Matrix
+from gpu_extras.batch import batch_for_shader
 
 
 class StripRect:
@@ -87,7 +92,15 @@ def create_border_strip(
 
     # 座標情報から画像を生成
     # print(f"border_color: {border_color[:]}")
-    _draw_rect(output_path, src_rect.width, src_rect.height, border_size, border_color)
+    image_padding = 10
+    create_rect_border_image(
+        output_path,
+        border_size,
+        [src_rect.width, src_rect.height],
+        border_color,
+        image_padding,
+    )
+    # _draw_rect(output_path, src_rect.width, src_rect.height, border_size, border_color)
     print(f"ボーダー画像を生成: {output_path}")
     # 生成画像と座標情報からimageストリップを追加
     rel_image_path = (
@@ -104,8 +117,8 @@ def create_border_strip(
     img_strip.frame_final_end = src_strip.frame_final_end
     img_rect = StripRect.fromEffectSequenceStrip(img_strip)
     # print(src_rect, img_rect)
-    img_strip.transform.offset_x = src_rect.x - img_rect.x - border_size
-    img_strip.transform.offset_y = src_rect.y - img_rect.y - border_size
+    img_strip.transform.offset_x = src_rect.x - img_rect.x - border_size - image_padding
+    img_strip.transform.offset_y = src_rect.y - img_rect.y - border_size - image_padding
     img_strip.color_tag = "COLOR_01"
     return img_strip
 
@@ -116,87 +129,78 @@ def _make_unique_name(prefix="___"):
     )
 
 
-def _draw_rect(output_path, width, height, border_size=5, border_color=[1, 0, 0, 1]):
-    # print(">>>_draw_rect")
-    rect_width = width + border_size * 2
-    rect_height = height + border_size * 2
-    img_name = _make_unique_name()
-
-    img = bpy.data.images.new(
-        img_name, width=rect_width, height=rect_height, alpha=True
+def get_rect_vertices(rect_size, canvs_size):
+    rect_w, rect_h = rect_size
+    canvas_w, canvas_h = canvs_size
+    w_rate = rect_w / canvas_w
+    h_rate = rect_h / canvas_h
+    return np.array(
+        [
+            [-1 * w_rate, -1 * h_rate],
+            [-1 * w_rate, h_rate],
+            [w_rate, -1 * h_rate],
+            [w_rate, h_rate],
+        ]
     )
+
+
+def create_rect_border_image(
+    output_path,
+    line_width,
+    inner_rect_size,
+    line_color,
+    padding=10,
+):
+    inner_w = inner_rect_size[0]
+    inner_h = inner_rect_size[1]
+    outer_w = inner_w + (line_width * 2)
+    outer_h = inner_h + (line_width * 2)
+    canvas_w = outer_w + (padding * 2)
+    canvas_h = outer_h + (padding * 2)
+    outer_vtxs = get_rect_vertices([outer_w, outer_h], [canvas_w, canvas_h])
+    inner_vtxs = get_rect_vertices([inner_w, inner_h], [canvas_w, canvas_h])
+
+    image_name = _make_unique_name()
+
+    offscreen = gpu.types.GPUOffScreen(canvas_w, canvas_h)
+
+    with offscreen.bind():
+        fb = gpu.state.active_framebuffer_get()
+        fb.clear(color=(0.0, 0.0, 0.0, 0.0))
+        with gpu.matrix.push_pop():
+            # reset matrices -> use normalized device coordinates [-1, 1]
+            gpu.matrix.load_matrix(Matrix.Identity(4))
+            gpu.matrix.load_projection_matrix(Matrix.OrthoProjection("XY", 4))
+            # gpu.matrix.translate((0, 0))
+            # gpu.matrix.scale_uniform(1.0)
+
+            shader = gpu.shader.from_builtin("UNIFORM_COLOR")
+            shader.uniform_float("color", line_color)
+            print("outer: ", outer_vtxs)
+            batch = batch_for_shader(shader, "TRI_STRIP", {"pos": outer_vtxs.tolist()})
+            batch.draw(shader)
+
+            shader.uniform_float("color", (0, 0, 0, 0))
+
+            batch = batch_for_shader(
+                shader,
+                "TRI_STRIP",
+                {"pos": inner_vtxs.tolist()},
+            )
+            batch.draw(shader)
+
+        buffer = fb.read_color(0, 0, canvas_w, canvas_h, 4, 0, "UBYTE")
+
+    offscreen.free()
+    if image_name in bpy.data.images:
+        img = bpy.data.images[image_name]
+        bpy.data.images.remove(img)
+
+    img = bpy.data.images.new(image_name, width=canvas_w, height=canvas_h, alpha=True)
     img.file_format = "PNG"
     img.alpha_mode = "STRAIGHT"
     img.filepath = output_path
-
-    default_pixel = [0, 0, 0, 0]
-    len_of_pxs = rect_width * rect_height
-    # img.pixels = default_pixel * len_of_pxs
-    wk_pixels = default_pixel * len_of_pxs
-    _draw_straight_line(
-        wk_pixels,
-        rect_width,
-        rect_height,
-        (0, 0),
-        (0, rect_height - 1),
-        border_size,
-        border_color,
-    )
-    _draw_straight_line(
-        wk_pixels,
-        rect_width,
-        rect_height,
-        (rect_width - border_size, 0),
-        (rect_width - border_size, rect_height - 1),
-        border_size,
-        border_color,
-    )
-    _draw_straight_line(
-        wk_pixels,
-        rect_width,
-        rect_height,
-        (0, 0),
-        (rect_width - 1, 0),
-        border_size,
-        border_color,
-    )
-    _draw_straight_line(
-        wk_pixels,
-        rect_width,
-        rect_height,
-        (0, rect_height - border_size - 1),
-        (rect_width - 1, rect_height - border_size - 1),
-        border_size,
-        border_color,
-    )
-    img.pixels = wk_pixels
+    buffer.dimensions = canvas_w * canvas_h * 4
+    img.pixels = [v / 255 for v in buffer]
     img.save()
     bpy.data.images.remove(img)
-
-
-def _draw_straight_line(pixels, width, height, p1, p2, border_size, border_color):
-    if p1[0] == p2[0]:
-        _draw_vertical_line(pixels, width, height, p1, p2, border_size, border_color)
-    elif p1[1] == p2[1]:
-        _draw_horizontal_line(pixels, width, height, p1, p2, border_size, border_color)
-    else:
-        raise NotImplementedError("直線以外は未実装")
-
-
-def _draw_vertical_line(pixels, width, height, p1, p2, border_size, border_color):
-    color = border_color[:]
-    depth = len(color)
-    dh = p2[1] - p1[1]
-    for hidx in range(dh):
-        start_idx = (p1[0] * depth) + (width * depth * (p1[1] + hidx))
-        end_idx = start_idx + depth * border_size
-        pixels[start_idx:end_idx] = color * border_size
-
-
-def _draw_horizontal_line(pixels, width, height, p1, p2, border_size, border_color):
-    color = border_color[:]
-    depth = len(color)
-    for bsidx in range(border_size):
-        start_idx = (p1[0] * depth) + (width * depth * (p1[1] + bsidx))
-        end_idx = start_idx + depth * (p2[0] - p1[0] + 1)
-        pixels[start_idx:end_idx] = color * (p2[0] - p1[0] + 1)
