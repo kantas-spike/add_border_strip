@@ -1,8 +1,0 @@
-{
-  "python.autoComplete.extraPaths": [
-    "/Users/kanta/spike/00_resources/fake_bpy_modules/fake-bpy-module-4.0-20231118"
-  ],
-  "python.analysis.extraPaths": [
-    "/Users/kanta/spike/00_resources/fake_bpy_modules/fake-bpy-module-4.0-20231118"
-  ]
-}
