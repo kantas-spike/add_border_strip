@@ -200,7 +200,7 @@ def create_border_image(
 
             shader = gpu.shader.from_builtin("UNIFORM_COLOR")
             shader.uniform_float("color", line_color)
-            print("outer: ", outer_vtxs)
+            # print("outer: ", outer_vtxs)
             batch = batch_for_shader(shader, draw_mode, {"pos": outer_vtxs.tolist()})
             batch.draw(shader)
 

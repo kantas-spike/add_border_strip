@@ -71,7 +71,6 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
 
         context.scene.sequence_editor.active_strip = placeholder_strip
 
-        self.report(type={"INFO"}, message="test")
         return {"FINISHED"}
 
 
