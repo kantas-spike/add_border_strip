@@ -176,7 +176,7 @@ def register():
 
 def unregister():
     clear_props()
-    for c in classList:
+    for c in reversed(classList):
         bpy.utils.unregister_class(c)
     print("add_border_strip: unregistered")
 
