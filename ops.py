@@ -43,7 +43,8 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
             type="COLOR",
             frame_start=cur_frame,
             frame_end=cur_frame + props.placeholder_duration,
-            channel=props.placeholder_channel)
+            channel=props.placeholder_channel,
+        )
         placeholder_strip.transform.origin[0] = 0
         placeholder_strip.transform.origin[1] = 1.0
         placeholder_strip.transform.scale_x = props.placeholder_scale_x
@@ -127,6 +128,7 @@ def add_border_strip(op, context, target_strip):
     img_strip = border_strip_utils.create_border_strip(
         target_strip,
         abs_image_dir,
+        props.shape_type,
         props.border_size,
         props.border_color,
     )

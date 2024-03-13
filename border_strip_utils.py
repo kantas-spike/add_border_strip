@@ -3,6 +3,7 @@ import datetime
 import secrets
 import os
 import gpu
+import math
 import numpy as np
 
 from mathutils import Matrix
@@ -73,7 +74,7 @@ def normalize_image_dir(image_dir):
 
 
 def create_border_strip(
-    src_strip: bpy.types.Sequence, image_dir, border_size, border_color
+    src_strip: bpy.types.Sequence, image_dir, shape_type, border_size, border_color
 ):
     # print(">>>create_border_strip")
     # print(src_strip)
@@ -90,11 +91,12 @@ def create_border_strip(
     # target_stripの座標情報を取得
     src_rect = StripRect.fromEffectSequenceStrip(src_strip)
 
+    image_padding = 10
     # 座標情報から画像を生成
     # print(f"border_color: {border_color[:]}")
-    image_padding = 10
-    create_rect_border_image(
+    create_border_image(
         output_path,
+        shape_type,
         border_size,
         [src_rect.width, src_rect.height],
         border_color,
@@ -144,8 +146,23 @@ def get_rect_vertices(rect_size, canvs_size):
     )
 
 
-def create_rect_border_image(
+def get_circle_vertices(rect_size, canvs_size, segments=256):
+    rect_w, rect_h = rect_size
+    canvas_w, canvas_h = canvs_size
+    w_rate = rect_w / canvas_w
+    h_rate = rect_h / canvas_h
+    mul = (1.0 / (segments - 1)) * (2 * math.pi)
+    verts = [
+        (w_rate * math.cos(i * mul), h_rate * math.sin(i * mul))
+        for i in range(segments)
+    ]
+    verts.insert(0, [0, 0])
+    return np.array(verts)
+
+
+def create_border_image(
     output_path,
+    shape_type,
     line_width,
     inner_rect_size,
     line_color,
@@ -157,8 +174,15 @@ def create_rect_border_image(
     outer_h = inner_h + (line_width * 2)
     canvas_w = outer_w + (padding * 2)
     canvas_h = outer_h + (padding * 2)
-    outer_vtxs = get_rect_vertices([outer_w, outer_h], [canvas_w, canvas_h])
-    inner_vtxs = get_rect_vertices([inner_w, inner_h], [canvas_w, canvas_h])
+
+    draw_mode = "TRI_STRIP"
+    if shape_type == "rectangle":
+        outer_vtxs = get_rect_vertices([outer_w, outer_h], [canvas_w, canvas_h])
+        inner_vtxs = get_rect_vertices([inner_w, inner_h], [canvas_w, canvas_h])
+    else:
+        outer_vtxs = get_circle_vertices([outer_w, outer_h], [canvas_w, canvas_h])
+        inner_vtxs = get_circle_vertices([inner_w, inner_h], [canvas_w, canvas_h])
+        draw_mode = "TRI_FAN"
 
     image_name = _make_unique_name()
 
@@ -177,14 +201,14 @@ def create_rect_border_image(
             shader = gpu.shader.from_builtin("UNIFORM_COLOR")
             shader.uniform_float("color", line_color)
             print("outer: ", outer_vtxs)
-            batch = batch_for_shader(shader, "TRI_STRIP", {"pos": outer_vtxs.tolist()})
+            batch = batch_for_shader(shader, draw_mode, {"pos": outer_vtxs.tolist()})
             batch.draw(shader)
 
             shader.uniform_float("color", (0, 0, 0, 0))
 
             batch = batch_for_shader(
                 shader,
-                "TRI_STRIP",
+                draw_mode,
                 {"pos": inner_vtxs.tolist()},
             )
             batch.draw(shader)

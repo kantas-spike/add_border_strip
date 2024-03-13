@@ -101,8 +101,8 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         props = context.scene.border_props
 
         layout = self.layout
+        layout_props(layout, props, "shape_type", "Shape")
         layout_props(layout, props, "border_color", "Color")
-        layout.separator()
         layout_props(layout, props, "border_size", "Size(px)")
 
         layout.separator()
@@ -126,6 +126,15 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
 
 class AddBorderProperties(bpy.types.PropertyGroup):
     image_dir: bpy.props.StringProperty(subtype="DIR_PATH", default="//border_imgs")
+    shape_type: bpy.props.EnumProperty(
+        name="Shape",
+        description="シェイプの種類",
+        items=[
+            ("rectangle", "Rectangle", "四角形"),
+            ("circle", "Circle", "円形"),
+        ],
+        default="rectangle",
+    )
     border_color: bpy.props.FloatVectorProperty(
         subtype="COLOR_GAMMA", min=0, max=1.0, size=4, default=(1.0, 0, 0, 1)
     )
