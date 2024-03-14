@@ -25,6 +25,29 @@ def adjust_meta_duration(context, added_strip):
         meta_stack[-1].frame_final_end = added_strip.frame_final_end
 
 
+def guess_available_channel(frame_start, frame_end, target_channel, seqs):
+    unavailable_channels = set()
+    for s in seqs:
+        seq: bpy.types.Sequence = s
+        if seq.channel in unavailable_channels:
+            continue
+        elif (
+            seq.frame_final_end <= frame_start <= seq.frame_final_end
+            or seq.frame_final_end <= frame_end <= seq.frame_final_end
+        ):
+            unavailable_channels.add(seq.channel)
+
+    if target_channel not in unavailable_channels:
+        return target_channel
+
+    last_no = sorted(unavailable_channels)[-1]
+    candidate = set(range(target_channel, last_no + 2))
+    diff = sorted(candidate - unavailable_channels)
+    # print(f"unavailable: {unavailable_channels}, candidate: {candidate}, diff: {diff}")
+    # 使われていない最小のチャンネルを返す
+    return diff[0]
+
+
 class AddPlaceholderStripOpertaion(bpy.types.Operator):
     bl_idname = "add_border_strip.add_placeholder_strip"
     bl_label = "Add Placeholder Strip"
@@ -36,14 +59,25 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         cur_frame = bpy.context.scene.frame_current
         bpy.ops.sequencer.select_all(action="DESELECT")
 
-        seqs = context.scene.sequence_editor.sequences
+        current_meta = get_current_meta_strip(context)
+        if current_meta:
+            seqs = current_meta.sequences
+        else:
+            seqs = context.scene.sequence_editor.sequences
+
+        frame_start = cur_frame
+        frame_end = cur_frame + props.placeholder_duration
+        target_channel = guess_available_channel(
+            frame_start, frame_end, props.placeholder_channel, seqs
+        )
+        print("target_channel: ", target_channel)
 
         placeholder_strip = seqs.new_effect(
             name=f"placeholder_{datetime.datetime.now().timestamp()}",
             type="COLOR",
-            frame_start=cur_frame,
-            frame_end=cur_frame + props.placeholder_duration,
-            channel=props.placeholder_channel,
+            frame_start=frame_start,
+            frame_end=frame_end,
+            channel=target_channel,
         )
         placeholder_strip.transform.origin[0] = 0
         placeholder_strip.transform.origin[1] = 1.0
@@ -63,11 +97,10 @@ class AddPlaceholderStripOpertaion(bpy.types.Operator):
         placeholder_strip[CUSTOM_KEY_STRIP_TYPE] = STRIP_TYPE_PLACEHOLDER
         placeholder_strip[CUSTOM_KEY_PLACEHOLDER_ID] = placeholder_strip.name
 
-        current_meta = get_current_meta_strip(context)
-        if current_meta:
-            placeholder_strip.move_to_meta(current_meta)
-            adjust_meta_duration(context, placeholder_strip)
-            context.scene.sequence_editor.display_stack(current_meta)
+        # current_meta = get_current_meta_strip(context)
+        # if current_meta:
+        #     adjust_meta_duration(context, placeholder_strip)
+        #     context.scene.sequence_editor.display_stack(current_meta)
 
         context.scene.sequence_editor.active_strip = placeholder_strip
 
