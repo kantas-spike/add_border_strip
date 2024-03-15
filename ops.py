@@ -32,18 +32,16 @@ def guess_available_channel(frame_start, frame_end, target_channel, seqs):
         if seq.channel in unavailable_channels:
             continue
         elif (
-            seq.frame_final_end <= frame_start <= seq.frame_final_end
-            or seq.frame_final_end <= frame_end <= seq.frame_final_end
+            frame_start <= seq.frame_final_start < frame_end
+            or frame_start <= seq.frame_final_end <= frame_end
         ):
             unavailable_channels.add(seq.channel)
-
     if target_channel not in unavailable_channels:
         return target_channel
 
     last_no = sorted(unavailable_channels)[-1]
     candidate = set(range(target_channel, last_no + 2))
     diff = sorted(candidate - unavailable_channels)
-    # print(f"unavailable: {unavailable_channels}, candidate: {candidate}, diff: {diff}")
     # 使われていない最小のチャンネルを返す
     return diff[0]
 
