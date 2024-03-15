@@ -36,6 +36,11 @@ def guess_available_channel(frame_start, frame_end, target_channel, seqs):
             or frame_start <= seq.frame_final_end <= frame_end
         ):
             unavailable_channels.add(seq.channel)
+        elif (
+            seq.frame_final_start <= frame_start <= seq.frame_final_end
+            and seq.frame_final_start <= frame_end <= seq.frame_final_end
+        ):
+            unavailable_channels.add(seq.channel)
     if target_channel not in unavailable_channels:
         return target_channel
 
