@@ -29,4 +29,4 @@ OSはmacOS、Blenderはv4.0でのみ動作確認しています。
 
 詳細な手順は、以下を確認してください。
 
-![](./doc/usage.gif)
+[![使い方](http://img.youtube.com/vi/4cKW-0bniMQ/0.jpg)](https://youtu.be/4cKW-0bniMQ?si=7ABgEYaGv6l1MqLr&t=35)
