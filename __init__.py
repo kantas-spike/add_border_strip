@@ -40,6 +40,7 @@ class AddBorderBase:
 class AddBorderOutputPanel(AddBorderBase, bpy.types.Panel):
     bl_label = "Output"
     bl_idname = "ADDBORDER_PT_OutputPanel"
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         props = context.scene.border_props
@@ -85,7 +86,6 @@ class AddBorderPlaceholderButtonsPanel(AddBorderBase, bpy.types.Panel):
     bl_parent_id = "ADDBORDER_PT_PlaceholderPanel"
 
     def draw(self, context):
-        pass
         layout = self.layout
         layout.operator(
             ops.AddPlaceholderStripOpertaion.bl_idname,
@@ -124,6 +124,70 @@ class AddBorderBorderPanel(AddBorderBase, bpy.types.Panel):
         )
 
 
+class AddBorderEffectPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Effect"
+    bl_idname = "ADDBORDER_PT_EffectPanel"
+
+    def draw(self, context):
+        pass
+
+
+class AddBorderEffectSettingsPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Settings"
+    bl_idname = "ADDBORDER_PT_EffectSettingsPanel"
+    bl_parent_id = "ADDBORDER_PT_EffectPanel"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    def draw(self, context):
+        props = context.scene.border_props.effect_settings
+
+        layout = self.layout
+        layout_props(layout, props, "sec_of_one_cycle", "1周期の秒数")
+        layout_props(layout, props, "max_scale", "最大拡大率")
+        layout_props(layout, props, "min_scale", "最小拡大率")
+        layout_props(layout, props, "effect_times", "繰り返し回数")
+        row = layout.row()
+        row.label(text="キーフレームの時間配分")
+        layout_props(layout, props, "keyframes_ratio", "")
+
+
+class AddBorderEffectButtonsPanel(AddBorderBase, bpy.types.Panel):
+    bl_label = "Buttons"
+    bl_idname = "ADDBORDER_PT_EffectButtonsPanel"
+    bl_parent_id = "ADDBORDER_PT_EffectPanel"
+    bl_options = {"HIDE_HEADER"}
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        op = row.operator(
+            ops.AddBorderApplyEffectOperation.bl_idname,
+            text="Apply Effect",
+        )
+        props = context.scene.border_props.effect_settings
+        op.sec_of_one_cycle = props.sec_of_one_cycle
+        op.max_scale = props.max_scale
+        op.min_scale = props.min_scale
+        op.effect_times = props.effect_times
+        op.keyframes_ratio = props.keyframes_ratio
+
+        row = layout.row()
+        row.operator(
+            ops.AddBorderClearEffectOperation.bl_idname,
+            text="Clear Effect",
+        )
+
+
+class AddBorderEffectProperties(bpy.types.PropertyGroup):
+    sec_of_one_cycle: bpy.props.FloatProperty(min=0.5, max=10, default=0.5)
+    max_scale: bpy.props.FloatProperty(min=1.0, max=2.0, default=1.05)
+    min_scale: bpy.props.FloatProperty(min=0.1, max=1.0, default=0.9)
+    effect_times: bpy.props.IntProperty(min=1, max=5, default=2)
+    keyframes_ratio: bpy.props.FloatVectorProperty(
+        min=0, max=1.0, size=4, default=(0.0, 0.5, 0.9, 1.0)
+    )
+
+
 class AddBorderProperties(bpy.types.PropertyGroup):
     image_dir: bpy.props.StringProperty(subtype="DIR_PATH", default="//border_imgs")
     shape_type: bpy.props.EnumProperty(
@@ -147,6 +211,7 @@ class AddBorderProperties(bpy.types.PropertyGroup):
 
     placeholder_duration: bpy.props.IntProperty(min=0, default=60)
     placeholder_channel: bpy.props.IntProperty(min=1, default=2)
+    effect_settings: bpy.props.PointerProperty(type=AddBorderEffectProperties)
 
 
 classList = ops.class_list + [
@@ -155,6 +220,10 @@ classList = ops.class_list + [
     AddBorderPlaceholderButtonsPanel,
     AddBorderOutputPanel,
     AddBorderBorderPanel,
+    AddBorderEffectPanel,
+    AddBorderEffectSettingsPanel,
+    AddBorderEffectButtonsPanel,
+    AddBorderEffectProperties,
     AddBorderProperties,
 ]
 
