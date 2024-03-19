@@ -308,7 +308,7 @@ class AddBorderApplyEffectOperation(bpy.types.Operator):
     min_scale: bpy.props.FloatProperty(min=0.1, max=1.0, default=0.9)
     effect_times: bpy.props.IntProperty(min=1, max=5, default=2)
     keyframes_ratio: bpy.props.FloatVectorProperty(
-        min=0, max=1.0, size=4, default=(0.0, 0.5, 0.9, 1.0)
+        min=0, max=1.0, size=4, default=(0.0, 0.3, 0.7, 1.0)
     )
 
     @classmethod
