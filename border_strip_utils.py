@@ -56,7 +56,7 @@ class StripRect:
 
     @classmethod
     def fromScreen(cls):
-        render = bpy.data.scenes["Scene"].render
+        render = bpy.context.scene.render
         width = render.resolution_x * (render.resolution_percentage / 100)
         height = render.resolution_y * (render.resolution_percentage / 100)
         return cls(0, 0, round(width), round(height))
