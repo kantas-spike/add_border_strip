@@ -10,7 +10,6 @@ CUSTOM_KEY_PLACEHOLDER_ID = "placeholder_id"
 ADDON_NAME = "add_border_strip"
 STRIP_TYPE_PLACEHOLDER = "placeholder"
 STRIP_TYPE_BORDER = "border"
-ACTION_GROUP_NAME = "border_effect"
 
 
 def get_current_meta_strip(context):
