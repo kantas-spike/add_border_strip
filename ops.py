@@ -275,20 +275,14 @@ class AddBorderClearEffectOperation(bpy.types.Operator):
         if not scene.animation_data.action:
             action = bpy.data.actions.new(scene.name + "Action")
             scene.animation_data.action = action
-        target_group = None
-        for grp in scene.animation_data.action.groups:
-            if grp.name == ACTION_GROUP_NAME:
-                target_group = grp
-        if not target_group:
-            target_group = scene.animation_data.action.groups.new(ACTION_GROUP_NAME)
-
         has_target_seqs = False
         for seq in context.selected_sequences:
             if not is_border(seq):
                 continue
+
             has_target_seqs = True
             fcurves = scene.animation_data.action.fcurves
-            clear_group_of_fcurve(seq, fcurves, target_group.name)
+            clear_fcurve(seq, fcurves)
             seq.invalidate_cache("COMPOSITE")
 
         if not has_target_seqs:
@@ -325,12 +319,6 @@ class AddBorderApplyEffectOperation(bpy.types.Operator):
         if not scene.animation_data.action:
             action = bpy.data.actions.new(scene.name + "Action")
             scene.animation_data.action = action
-        target_group = None
-        for grp in scene.animation_data.action.groups:
-            if grp.name == ACTION_GROUP_NAME:
-                target_group = grp
-        if not target_group:
-            target_group = scene.animation_data.action.groups.new(ACTION_GROUP_NAME)
 
         has_target_seqs = False
 
@@ -339,9 +327,9 @@ class AddBorderApplyEffectOperation(bpy.types.Operator):
                 continue
             has_target_seqs = True
             fcurves = scene.animation_data.action.fcurves
-            clear_group_of_fcurve(seq, fcurves, target_group.name)
+            clear_fcurve(seq, fcurves)
             points = self.get_keyframe_points_of_effect(seq)
-            add_group_of_fcurve(seq, fcurves, target_group, points)
+            add_fcurve(seq, fcurves, points)
             seq.invalidate_cache("COMPOSITE")
 
         if not has_target_seqs:
@@ -379,44 +367,30 @@ class AddBorderApplyEffectOperation(bpy.types.Operator):
         return keyframe_points
 
 
-def clear_group_of_fcurve(
+def clear_fcurve(
     img_strip: bpy.types.ImageSequence,
     fcurves: bpy.types.ActionFCurves,
-    group_name=ACTION_GROUP_NAME,
 ):
     target_list = []
 
     data_path_prefix = img_strip.path_from_id("transform")
     for f in fcurves:
-        if (
-            f.group
-            and f.group.name == group_name
-            and f.data_path.startswith(data_path_prefix)
-        ):
+        if f.data_path.startswith(data_path_prefix):
             target_list.append(f)
 
     for f in target_list:
         fcurves.remove(f)
 
 
-def add_group_of_fcurve(
+def add_fcurve(
     img_strip: bpy.types.ImageSequence,
     fcurves: bpy.types.ActionFCurves,
-    group: bpy.types.ActionGroup,
     points,
 ):
     animated_propertis = ["scale_x", "scale_y"]
     for prop_name in animated_propertis:
         data_path = img_strip.transform.path_from_id(prop_name)
-        fcurve = None
-        for f in fcurves:
-            if f.data_path == prop_name:
-                fcurve = f
-                break
-        if fcurve:
-            fcurves.remove(fcurve)
         fcurve = fcurves.new(data_path=data_path)
-        fcurve.group = group
         keyframe_points = fcurve.keyframe_points
         for point in points:
             keyframe_points.insert(frame=point[0], value=point[1], options={"FAST"})
